@@ -66,11 +66,13 @@ covers every case, and costs nothing the rest of the time.
 ### What the watchdog checks
 
 ```
-broken := (active monitor devices > 1)  OR  (dwm CPU >= 5% on an idle desktop)
+broken := (active monitor devices > 1)  OR  (dwm CPU >= 15% on an idle desktop)
 ```
 
 Two independent signals, so a stray phantom monitor will not trigger a repair on its
-own, and a busy desktop will not either.
+own, and a busy desktop will not either. The dwm figure is the **lower of two samples**
+taken 8 seconds apart, because a single window animation can push it up briefly; the
+real defect sits at 30 % and stays there.
 
 ### Verify it works
 

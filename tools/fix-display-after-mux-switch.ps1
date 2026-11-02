@@ -123,16 +123,21 @@ if (-not $Quiet) {
 }
 
 # ------------------------------------------------------------------ decide
-$dwmBefore = Measure-Dwm 10
+# Measure twice and take the low value: a momentary repaint (opening an app,
+# a window animation) can push dwm up for a few seconds. A real duplicate
+# path sits at 30 %+ persistently.
+$dwmSample1 = Measure-Dwm 8
+$dwmSample2 = Measure-Dwm 8
+$dwmBefore  = [math]::Min($dwmSample1, $dwmSample2)
 
 if (-not $Quiet) {
     Write-Host ''
-    Write-Host ("  dwm CPU          : {0}% of one core" -f $dwmBefore) -ForegroundColor Cyan
+    Write-Host ("  dwm CPU          : {0}% of one core (samples: {1}, {2})" -f $dwmBefore, $dwmSample1, $dwmSample2) -ForegroundColor Cyan
 }
 
 $broken = $false
 if ($activeMonitors -gt 1) { $broken = $true }
-if ($dwmBefore -ge 5)      { $broken = $true }
+if ($dwmBefore -ge 15)     { $broken = $true }
 if ($Force)                { $broken = $true }
 
 if (-not $broken) {
@@ -172,7 +177,7 @@ Start-Sleep -Seconds 6
 Enable-PnpDevice  -InstanceId $intel.InstanceId -Confirm:$false -ErrorAction Continue
 Start-Sleep -Seconds 18
 
-$dwmAfter     = Measure-Dwm 10
+$dwmAfter     = [math]::Min((Measure-Dwm 8), (Measure-Dwm 8))
 $monitorsAfter = @(Get-PnpDevice -Class Monitor | Where-Object { $_.Status -eq 'OK' }).Count
 $intelAfter   = Get-PnpDevice -Class Display | Where-Object { $_.FriendlyName -match 'Intel' } | Select-Object -First 1
 
