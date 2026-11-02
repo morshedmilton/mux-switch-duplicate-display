@@ -1,0 +1,12 @@
+# Local diagnostic output - never commit your own
+*.txt
+*.csv
+*.reg
+*.log
+!.gitignore
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
