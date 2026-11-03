@@ -1,128 +1,181 @@
-# 📓 Known limitations of "NVIDIA GPU only" mode
+# 📓 The three-way trade-off (and how to win all three)
 
-> Measured on a Dell G15 5530 (i7-13650HX, RTX 4060 Laptop, Intel UHD, AUO AA9F
-> 1920×1080 360 Hz). Other MUX laptops may behave better — or worse. Test yours.
+> **This page corrects an earlier version of this repo.** It used to claim that
+> brightness control is simply *impossible* in "NVIDIA GPU only" mode. That was wrong,
+> and the owner of the laptop caught it: brightness **did** work in that mode. Here is
+> the measured truth.
 
-Switching the MUX to **NVIDIA GPU only** (discrete) is not a free upgrade on this
-model. Two things measurably break, and one of them cannot be worked around.
+Everything below was measured on a Dell G15 5530 — i7-13650HX, RTX 4060 Laptop
+(32.0.16.2101), Intel UHD (32.0.101.7088), AUO AA9F 1920×1080 360 Hz, Windows 11 26300.
 
 ---
 
-## 1. Brightness control disappears entirely ⛔
+## The short version
 
-### Symptom
+In **NVIDIA GPU only** mode you can have any **two** of these three, never all three:
 
-- `Fn` + brightness keys do nothing
-- the brightness slider in Settings does nothing, or is missing
-- the screen sits at a fixed level
+| | Colour grading (NVIDIA) | Brightness 0–100 | Smooth typing |
+|---|---|---|---|
+| **NVIDIA-only, stale Intel path alive** | ✅ | ✅ | ❌ `dwm` 35–43 % |
+| **NVIDIA-only, stale path removed** | ✅ | ❌ | ✅ `dwm` 1–2 % |
+| **Optimus + Intel colour** | ✅ (looks the same) | ✅ | ✅ `dwm` 1–2 % |
 
-### Evidence
+The only configuration that gives all three is the last one — and the reason people
+resist it (colour) turns out to be a single number you can copy across.
 
-```powershell
-Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBrightness
-# -> no output, no instances
+---
+
+## Why brightness only works with the stale path
+
+`WmiMonitorBrightness` is the only brightness interface Windows exposes on this machine.
+When it exists, its instance name tells you exactly which display path is providing it:
+
+```
+DISPLAY\AUOAA9F\4&3a9f8b26&8&UID8388688_0
 ```
 
-Every brightness class exists as a **definition** but has **zero instances**:
+That UID belongs to the monitor device called **Integrated Monitor** — the leftover
+Intel path, not the NVIDIA one. So:
 
-| WMI class | instances in discrete mode | instances in Optimus mode |
-|---|---|---|
-| `WmiMonitorBrightness` | **0** | 1 |
-| `WmiMonitorBrightnessMethods` | **0** | 1 |
-| `NvWmiBrightness` | **0** | — |
-| `WmiMonitorBrightnessEvent` | **0** | — |
+| State | active monitors | brightness instances | works? |
+|---|---|---|---|
+| NVIDIA-only, stale path alive | **2** | **1** | ✅ |
+| NVIDIA-only, stale path removed | 1 | **0** | ❌ |
+| Optimus | 1 | **1** | ✅ |
 
-Windows still sees the panel:
+The ACPI backlight (`_BCM` / `_BQC`) hangs off the **integrated GPU's** device, and the
+EC that physically drives the backlight PWM is reached through it. NVIDIA's own
+`NvWmiBrightness` has **zero instances** on this model, so it cannot substitute.
 
-```powershell
-Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBasicDisplayParams
-# InstanceName : DISPLAY\AUOAA9F\5&39808dae&2&UID4353_0
-# Active       : True
+So the "duplicate display" that this repo treats as a bug is, in NVIDIA-only mode, the
+**only** source of brightness control.
+
+---
+
+## Why that same path causes the typing lag
+
+With the stale path alive, `Desktop Window Manager` composites every frame for **both**
+adapters:
+
+```
+PID 2304   dwm   LUID 0x00012f34   avg 28.8 %   <- NVIDIA adapter
+PID 2304   dwm   LUID 0x00013329   avg  7.1 %   <- Intel adapter
 ```
 
-…and the panel is genuinely on the dGPU:
+Measured `dwm.exe` CPU on an idle desktop at 360 Hz:
 
-```powershell
-nvidia-smi --query-gpu=display_active --format=csv
-# Enabled
-```
-
-But nothing exposes a backlight interface, so **there is no target for the key press
-or the slider**. Nothing to fix at the Windows level: the control channel does not exist.
-
-### Why
-
-The ACPI backlight path (`_BCM` / `_BQC`) on this platform hangs off the **integrated
-GPU's ACPI device**, and the embedded controller that physically drives the panel's
-backlight PWM is addressed through it. When the MUX moves the panel to the RTX 4060,
-Windows loses that handle.
-
-The NVIDIA miniport on this model does **not** publish its own brightness interface to
-compensate — `NvWmiBrightness` also has zero instances. NVIDIA's driver does store a
-per-display value (`_User_SUB0_DFP1_VAL_Brightness` in its registry key), but it is not
-wired to the OS.
-
-This is not a driver fault you can reinstall away, and there is no registry switch for
-it. It is how the firmware and the two drivers are arranged.
-
-### Workaround
-
-Real backlight control is gone, but the screen can still be dimmed in software.
-
-| Option | Result |
+| State | `dwm` CPU (% of one core) |
 |---|---|
-| **[brightness-nvidia-only](../tools/brightness-nvidia-only/)** — a 6 KB gamma tool, already built and installed on this machine | ✅ works, one click = 10 %, level survives reboot. Not the backlight: no battery saving, slight contrast loss when dimmed |
-| **NVIDIA Control Panel → Adjust desktop color settings → Brightness** | ✅ works, but a slider in a control panel, not a key |
-| Switch back to **Optimus** | ✅ brightness keys and the slider return immediately, no reboot needed |
-| Third-party EC brightness tools | not verified on this model, write the EC directly — not recommended |
-| External monitor with its own brightness | works, but not the internal panel |
+| stale path alive | **34.9 / 38.5 / 42.7** |
+| stale path removed | 1.0 / 1.8 |
+| Optimus | 1.0 / 1.8 |
 
-**The `Fn` keys cannot be made to work in this mode.** They are delivered to Windows,
-which then looks for a brightness provider and finds none. There is nothing to intercept
-and nothing to remap — see the tool page for the details.
+At 360 Hz that is 360 composites per second, twice, plus a cross-adapter copy. That is
+the "typed word appears a second later" feeling: the keystroke is handled instantly, the
+frame carrying it is not.
 
 ---
 
-## 2. Duplicate display path and `dwm` CPU burn ⚠️
+## The mistake this repo made
 
-Covered in full in the [main README](../README.md).
-
-In short: after the switch, Windows keeps the old monitor instance alive, `dwm`
-composites on both adapters, and 35–46 % of a CPU core disappears while the desktop is
-idle. Unlike brightness, this one **can** be repaired in 40 seconds.
-
----
-
-## So what is "NVIDIA GPU only" actually good for?
-
-| | Optimus | NVIDIA GPU only |
-|---|---|---|
-| Brightness control | ✅ | ❌ gone |
-| Desktop compositor load | ✅ normal | ⚠️ can double |
-| Battery life | ✅ | ❌ much worse |
-| Game FPS | baseline | +3–8 % in esports, less elsewhere |
-| Panel scanout latency | one extra copy | ✅ direct |
-
-**Recommendation for this model: stay in Optimus.** Games still render on the RTX 4060;
-only the present step uses the iGPU. You lose a few percent in high-frame-rate esports
-titles and keep working brightness, a quiet desktop and usable battery.
-
-Switch to discrete mode only for a session where you specifically need the last few
-percent — and know that brightness control goes with it.
-
----
-
-## Quick self-check
+The repair script originally triggered on **monitor count alone**:
 
 ```powershell
-# 1. which GPU owns the panel?
+if ($activeMonitors -gt 1) { $broken = $true }   # WRONG in NVIDIA-only mode
+```
+
+and a logon watchdog ran it on every boot. The log shows it firing twice in one day
+while the desktop was already idle:
+
+```
+11-03 02:14:40  active monitors=2
+11-03 02:14:56  repairing ...   dwm=0%    monitors 2 -> 1
+11-03 10:17:40  active monitors=2
+11-03 10:17:56  repairing ...   dwm=2.1%  monitors 2 -> 1
+```
+
+`dwm` was already 0 % and 2 % — there was no lag to fix. The script was removing the
+brightness path for nothing.
+
+**Fixed in `1712c77`:** the trigger is now `dwm >= 15 %` only. A second monitor device is
+reported, never repaired on its own.
+
+---
+
+## The colour problem, solved with one number
+
+The reason people stay in NVIDIA-only mode is usually colour. On this machine that
+preference was one registry value:
+
+```
+HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-...}\0000
+  _User_SUB0_DFP1_VAL_Saturation  = 125     <- +25 %, everything else default
+  _User_SUB0_DFP1_VAL_Contrast    = 100     default
+  _User_SUB0_DFP1_VAL_Hue         = 0       default
+  _User_SUB0_DFP1_VAL_Brightness  = 0       default
+  _User_SUB0_DFP1_VAL_RGB_Gamma_R = 100     default
+```
+
+**The entire "NVIDIA look" was saturation 125 %.** Nothing else.
+
+Intel Graphics Software has the same control. Set:
+
+```
+Intel Graphics Software -> Display -> Color -> Saturation:  50 (default)  ->  ~62
+```
+
+62 on Intel's 0–100 scale (50 = neutral) is the same +25 %. Nudge one step either way to
+taste.
+
+---
+
+## Result after switching to Optimus
+
+Measured immediately after the switch and the Intel saturation change:
+
+```
+panel owner     : Intel iGPU (Optimus)
+active monitors : 1
+brightness i/f  : 1          ✅
+brightness      : 20 %
+refresh         : 360 Hz
+dwm CPU         : 1.8 % / 1.0 %
+```
+
+Games still run on the RTX 4060 — every title on the machine already carries
+`GpuPreference=2` (High performance) in
+`HKCU\Software\Microsoft\Windows\CurrentVersion\...\UserGpuPreferences`
+(`Client-Win64-Shipping.exe`, `GTA5.exe`, `SnowRunner.exe`, `Wuthering Waves.exe`).
+
+Cost: roughly **0–5 %** frame rate versus discrete mode, because the frame is presented
+through the iGPU. At 120–200 fps it is not noticeable; at 300+ fps in esports it is.
+
+---
+
+## What to do with the repair script now
+
+| Situation | Action |
+|---|---|
+| You stay in **Optimus** | You don't need the script at all. Single path, nothing to repair. |
+| You need **NVIDIA-only for a session** | Expect to lose brightness. The script will still fix genuine lag (`dwm >= 15 %`), but it also removes brightness — that is unavoidable. |
+| You want all three | Optimus + Intel saturation ≈ 62. |
+
+The logon watchdog has been uninstalled on the machine this was diagnosed on, because it
+was silently trading brightness for a lag that was not there.
+
+---
+
+## Self-check
+
+```powershell
+# who owns the panel
 nvidia-smi --query-gpu=display_active --format=csv
 
-# 2. is there any brightness control at all?
-(Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBrightness | Measure-Object).Count
-# 0 = no control (discrete mode), 1 = control present (Optimus)
+# is brightness available, and through which path
+Get-CimInstance -Namespace root\wmi -ClassName WmiMonitorBrightness |
+    Select-Object InstanceName, CurrentBrightness
 
-# 3. is the duplicate display path present too?
-(Get-PnpDevice -Class Monitor | Where-Object Status -eq 'OK' | Measure-Object).Count
-# 2 = yes, run tools/fix-display-after-mux-switch.ps1
+# is the compositor doing double work
+$p1=(Get-Process dwm).CPU; Start-Sleep 10; $p2=(Get-Process dwm).CPU
+"{0}% of one core" -f [math]::Round(($p2-$p1)/10*100,1)
 ```
