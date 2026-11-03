@@ -33,16 +33,21 @@ OK        Integrated Monitor    DISPLAY\AUOAA9F\4&3A9F8B26&8&UID8388688
 Unknown   Generic Monitor       DISPLAY\AUOAA9F\1&8713BCA&0&UID0          <- phantom, fine
 ```
 
-Broken — **two entries with status `OK`** for the same physical panel:
+**Two entries with status `OK`** for the same physical panel is the interesting case:
 
 ```
-OK        Integrated Monitor    DISPLAY\AUOAA9F\4&3A9F8B26&8&UID8388688   <- stale path
-OK        Generic Monitor       DISPLAY\AUOAA9F\5&39808DAE&2&UID4353      <- new path
+OK        Integrated Monitor    DISPLAY\AUOAA9F\4&3A9F8B26&8&UID8388688   <- Intel path
+OK        Generic Monitor       DISPLAY\AUOAA9F\5&39808DAE&2&UID4353      <- NVIDIA path
 ```
 
-`Unknown` means *phantom* — that is normal and harmless. Only `OK` counts.
+What it means depends on the mode you are in:
 
-One panel physically attached → exactly **one** device may be `OK`.
+| Mode | Two `OK` monitors means |
+|---|---|
+| **Optimus** | something is wrong — one panel should have one path |
+| **NVIDIA GPU only** | **normal here, and this is what gives you brightness.** The Intel path supplies the ACPI backlight interface. Removing it removes brightness control. |
+
+`Unknown` means *phantom* — normal and harmless. Only `OK` counts.
 
 ---
 
