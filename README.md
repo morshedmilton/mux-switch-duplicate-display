@@ -37,9 +37,18 @@ Most people give up here and switch back to Optimus, or reinstall Windows.
 
 ## ⚡ The 40-second fix
 
+**Easiest — no terminal needed:** double-click **`tools\RUN-FIX.cmd`**, then click *Yes* on the
+Windows prompt. A window opens, does the check, prints the result, and waits for Enter
+before closing.
+
+From a terminal instead:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\fix-display-after-mux-switch.ps1
 ```
+
+> If you double-click the `.ps1` itself and the window vanishes, that is expected — it
+> hands off to an elevated window and exits. Use `RUN-FIX.cmd` instead.
 
 It will ask for admin once, blink the screen once, and take about 40 seconds.
 No reboot. No driver reinstall. Nothing is uninstalled.

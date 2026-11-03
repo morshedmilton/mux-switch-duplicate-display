@@ -96,6 +96,8 @@ That is one panel with two owners. Windows will happily composite for both.
 powershell -ExecutionPolicy Bypass -File .\tools\fix-display-after-mux-switch.ps1 -MeasureOnly
 ```
 
+Or just double-click **`tools\RUN-FIX.cmd`** and read the window it opens.
+
 Exit codes: `0` healthy · `1` duplicate detected · `3` no Intel adapter to toggle.
 
 ---
