@@ -160,9 +160,19 @@ if (-not $Quiet) {
 }
 
 $broken = $false
-if ($activeMonitors -gt 1) { $broken = $true }
-if ($dwmBefore -ge 15)     { $broken = $true }
-if ($Force)                { $broken = $true }
+# IMPORTANT: in "NVIDIA GPU only" mode the stale second monitor device is the ONLY
+# thing that gives Windows a brightness interface. Removing it also removes brightness
+# control, because the ACPI backlight lives on the integrated GPU.
+# So the monitor count alone must never trigger a repair - only real compositor load.
+if ($dwmBefore -ge 15) { $broken = $true }
+if ($Force)            { $broken = $true }
+
+if ($activeMonitors -gt 1 -and -not $broken -and -not $Quiet) {
+    Write-Host ''
+    Write-Host '  note: two monitor devices are active, but the compositor is idle.' -ForegroundColor DarkGray
+    Write-Host '  leaving it alone on purpose - that path may be what gives you' -ForegroundColor DarkGray
+    Write-Host '  brightness control while the panel is on the NVIDIA GPU.' -ForegroundColor DarkGray
+}
 
 if (-not $broken) {
     if (-not $Quiet) {
