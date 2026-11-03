@@ -67,13 +67,19 @@ it. It is how the firmware and the two drivers are arranged.
 
 ### Workaround
 
-None that is safe. Options:
+Real backlight control is gone, but the screen can still be dimmed in software.
 
 | Option | Result |
 |---|---|
-| Switch back to **Optimus** | brightness returns immediately, no reboot needed |
-| Third-party EC brightness tools | not verified on this model, can write EC directly — not recommended |
+| **[brightness-nvidia-only](../tools/brightness-nvidia-only/)** — a 6 KB gamma tool, already built and installed on this machine | ✅ works, one click = 10 %, level survives reboot. Not the backlight: no battery saving, slight contrast loss when dimmed |
+| **NVIDIA Control Panel → Adjust desktop color settings → Brightness** | ✅ works, but a slider in a control panel, not a key |
+| Switch back to **Optimus** | ✅ brightness keys and the slider return immediately, no reboot needed |
+| Third-party EC brightness tools | not verified on this model, write the EC directly — not recommended |
 | External monitor with its own brightness | works, but not the internal panel |
+
+**The `Fn` keys cannot be made to work in this mode.** They are delivered to Windows,
+which then looks for a brightness provider and finds none. There is nothing to intercept
+and nothing to remap — see the tool page for the details.
 
 ---
 
