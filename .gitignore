@@ -10,3 +10,6 @@
 Thumbs.db
 .vscode/
 .idea/
+
+# compiled tool output - build with build.ps1
+*.exe
