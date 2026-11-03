@@ -66,13 +66,18 @@ covers every case, and costs nothing the rest of the time.
 ### What the watchdog checks
 
 ```
-broken := (active monitor devices > 1)  OR  (dwm CPU >= 15% on an idle desktop)
+broken := (dwm CPU >= 15% on an idle desktop)
 ```
 
 Two independent signals, so a stray phantom monitor will not trigger a repair on its
 own, and a busy desktop will not either. The dwm figure is the **lower of two samples**
 taken 8 seconds apart, because a single window animation can push it up briefly; the
 real defect sits at 30 % and stays there.
+
+> ⚠️ **Monitor count is deliberately *not* a trigger.** In "NVIDIA GPU only" mode the
+> second (stale) monitor device is the only source of brightness control on this model.
+> An earlier version of this script repaired on monitor count alone and silently killed
+> brightness while the compositor was idle. See [docs/05](05-known-limitations.md).
 
 ### Verify it works
 
