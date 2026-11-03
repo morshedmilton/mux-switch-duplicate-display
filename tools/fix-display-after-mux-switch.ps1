@@ -76,12 +76,36 @@ if (-not (Test-Admin)) {
         Write-Log 'Not elevated - aborting (watchdog task must run with highest privileges)'
         exit 2
     }
-    Write-Host 'Needs administrator. Re-launching elevated...' -ForegroundColor Yellow
-    $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"")
+    Write-Host ''
+    Write-Host 'This needs administrator rights. Opening an elevated window...' -ForegroundColor Yellow
+    Write-Host 'If nothing happens, click Yes on the Windows prompt.' -ForegroundColor DarkGray
+    Write-Host ''
+    $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-NoExit', '-File', "`"$PSCommandPath`"")
     if ($MeasureOnly) { $argList += '-MeasureOnly' }
     if ($Force)       { $argList += '-Force' }
-    Start-Process powershell.exe -Verb RunAs -ArgumentList $argList
+    try {
+        Start-Process powershell.exe -Verb RunAs -ArgumentList $argList -ErrorAction Stop | Out-Null
+    } catch {
+        Write-Host 'Could not open an administrator window.' -ForegroundColor Red
+        Write-Host 'Either the UAC prompt was cancelled, or it never appeared.' -ForegroundColor Red
+        Write-Host ''
+        Write-Host 'Do this instead:' -ForegroundColor Yellow
+        Write-Host '  1. press Win, type PowerShell'
+        Write-Host '  2. right-click Windows PowerShell, choose "Run as administrator"'
+        Write-Host '  3. paste this line and press Enter:'
+        Write-Host ''
+        Write-Host ('     powershell -ExecutionPolicy Bypass -File "{0}"' -f $PSCommandPath) -ForegroundColor Cyan
+        Write-Host ''
+        Read-Host 'Press Enter to close'
+        exit 5
+    }
     return
+}
+
+function Wait-Close {
+    # keep the window open so the result is readable, no matter how it was launched
+    if ($Quiet) { return }
+    try { Read-Host 'Press Enter to close' | Out-Null } catch { }
 }
 
 function Measure-Dwm {
@@ -146,6 +170,7 @@ if (-not $broken) {
         Write-Host '  Healthy - nothing to do.' -ForegroundColor Green
     }
     Write-Log 'healthy, no action'
+    Wait-Close
     exit 0
 }
 
@@ -161,6 +186,7 @@ if ($MeasureOnly) {
         Write-Host ''
         Write-Host '  -> duplicate display path detected. Run without -MeasureOnly to fix.' -ForegroundColor Yellow
     }
+    Wait-Close
     exit 1
 }
 
@@ -198,4 +224,4 @@ if (-not $Quiet) {
     Write-Host ("  log: {0}" -f $LogFile) -ForegroundColor DarkGray
 }
 
-if ($dwmAfter -lt $dwmBefore - 10) { exit 0 } else { exit 4 }
+if ($dwmAfter -lt $dwmBefore - 10) { Wait-Close; exit 0 } else { Wait-Close; exit 4 }
