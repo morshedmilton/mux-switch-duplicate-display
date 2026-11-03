@@ -175,9 +175,11 @@ meet this bug.
 > ⚠️ There is no registry key, driver setting or Windows option that prevents the
 > duplicate from being created. See [docs/03](docs/03-permanent-fix.md) for why.
 
-> 💡 **Before you live in discrete mode:** on this model it also removes brightness
-> control completely — the `Fn` keys and the slider stop working, and no software fix
-> exists. Read [docs/05](docs/05-known-limitations.md) before deciding.
+> 💡 **Before you live in discrete mode:** brightness and smoothness fight each other
+> there. A leftover Intel display path is the *only* thing that gives Windows a
+> brightness interface — and it is the same path that doubles the compositor's work.
+> You can have two of the three (colour, brightness, smoothness), never all three.
+> The way out is one number: [docs/05](docs/05-known-limitations.md).
 
 ---
 
@@ -206,7 +208,7 @@ ready-to-send bug report for Dell support and the Microsoft Feedback Hub.
 | 📗 **[docs/02-evidence.md](docs/02-evidence.md)** | The raw registry forensics and the before/after measurements |
 | 📙 **[docs/03-permanent-fix.md](docs/03-permanent-fix.md)** | Why there's no setting for it, and how the watchdog works |
 | 📕 **[docs/04-report-to-vendor.md](docs/04-report-to-vendor.md)** | Copy-paste bug report for Dell / Microsoft, with the data to attach |
-| 📓 **[docs/05-known-limitations.md](docs/05-known-limitations.md)** | What else breaks in "NVIDIA GPU only" mode — including **loss of brightness control**, which cannot be worked around |
+| 📓 **[docs/05-known-limitations.md](docs/05-known-limitations.md)** | The three-way trade-off: **colour vs brightness vs smoothness** in "NVIDIA GPU only" mode — with the one-number fix that gets you all three |
 
 ---
 
