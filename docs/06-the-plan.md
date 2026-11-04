@@ -34,22 +34,31 @@ NVIDIA for the game, Intel for the desktop.
 
 ## Does this laptop have DDS?
 
-Three independent hints, all pointing yes, none of them conclusive on their own:
+Four independent hints. The first is the strongest.
 
-| Evidence | Where it came from |
+| Evidence | Source |
 |---|---|
-| Dell's own spec text for the G15 5530 panel reads **"NVIDIA G-SYNC + DDS Display"** | product listing / owner reports |
+| **Dell KB 000210473** — *"Alienware and G-Series laptops may show inconsistent GPU status in NVIDIA Control Panel"* — lists the **G15 5530** as an affected platform and documents a display mode called **"Automatic selection"**, with the fix path *dGPU mode → Automatic selection* | official Dell article |
+| Dell's spec text for the G15 5530 panel reads **"NVIDIA G-SYNC + DDS Display"** | product listing / owner reports |
 | `ACPI\NVDA0820\NPCF` — *NVIDIA Platform Controllers and Framework* — present and **OK** | this machine |
 | `ParadeMuxEdpLinkRateDataReloadTrigger = 1` on the Intel display adapter | this machine (the Parade eDP MUX) |
 
-NVPCF + a Parade MUX is exactly the hardware pair Advanced Optimus is built on.
+NVPCF + a Parade MUX is exactly the hardware pair Advanced Optimus is built on, and Dell
+has a KB article naming this model with the third mode.
 
-**The decisive check is one look at a UI page:**
+### The catch: a BIOS prerequisite
 
-> NVIDIA Control Panel → **Display** → **Display Mode**
->
-> - three options — `Optimus` / **`Automatic`** / `NVIDIA GPU only` → **DDS is present**
-> - two options — `Optimus` / `NVIDIA GPU only` → DDS is not exposed on this unit
+Dell's own wording gates the feature: the BIOS switch **"Hybrid Graphics / Advanced
+Optimus"** (labelled *"(when available)"*) must be **Enabled** before NVIDIA Control
+Panel will offer *Automatic selection*. If that switch is off, only two modes appear —
+which is very likely what is happening on this machine right now.
+
+Availability is still **per SKU**: the model manual does not promise it for every panel.
+So the order of checks matters:
+
+1. **BIOS** (F2 at boot) → Display → *Hybrid Graphics / Advanced Optimus* → **Enabled**
+   → save and exit. Unplug any external monitor first.
+2. **NVIDIA Control Panel** → Display → **Display Mode** → look for *Automatic*
 
 ---
 
@@ -74,7 +83,19 @@ flowchart TD
 One look at the page above. Nothing to install, nothing to change.
 
 ### Step 2 — enable it
-Select **Automatic**, apply, reboot if it asks.
+
+Enable the BIOS switch first if it is not already on:
+
+1. Reboot, press **F2** at the Dell logo → **Display** → *Hybrid Graphics / Advanced Optimus* → **Enabled** → Apply → Exit
+2. In Windows: **NVIDIA Control Panel → Display → Display Mode → Automatic** → apply
+3. Reboot if it asks
+
+### How DDS decides
+
+It is **per application**, not per fullscreen state. NVIDIA keeps an *allow-list* of
+applications; the panel moves to the dGPU when an allow-listed app starts and returns to
+the iGPU when the last one closes. So expect the panel to follow the game, and to come
+back to Intel when you quit.
 
 ### Step 3 — verify with four numbers
 After playing a game and quitting it:
