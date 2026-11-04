@@ -209,6 +209,7 @@ ready-to-send bug report for Dell support and the Microsoft Feedback Hub.
 | 📙 **[docs/03-permanent-fix.md](docs/03-permanent-fix.md)** | Why there's no setting for it, and how the watchdog works |
 | 📕 **[docs/04-report-to-vendor.md](docs/04-report-to-vendor.md)** | Copy-paste bug report for Dell / Microsoft, with the data to attach |
 | 📓 **[docs/05-known-limitations.md](docs/05-known-limitations.md)** | The three-way trade-off: **colour vs brightness vs smoothness** in "NVIDIA GPU only" mode — with the one-number fix that gets you all three |
+| 🎯 **[docs/06-the-plan.md](docs/06-the-plan.md)** | The full plan to get **colour + brightness + G-Sync + smoothness**: what owns what, whether this laptop has Advanced Optimus, the decision algorithm, the four-number verification and the rollback |
 
 ---
 
